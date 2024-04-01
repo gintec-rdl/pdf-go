@@ -7,6 +7,8 @@ Golang PDF template library for gofpdf (https://github.com/jung-kurt/gofpdf)
 This library adds a templating layer on top of https://github.com/jung-kurt/gofpdf, to ease the pain of having to dealing with the low-level API.
 The templates are in JSON format.
 
+NOTE: This code was not created from scratch/ground up. It was rather extracted from an existing system. There may be future improvements and a redesign.
+
 ### Why
 ---
 
