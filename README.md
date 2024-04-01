@@ -42,4 +42,5 @@ Check [ref.md](ref.md) for reference.
 
 - [ ] Add image support
 - [ ] Add custom font support
+- [ ] Alpha channel support (32bit colors)
 
