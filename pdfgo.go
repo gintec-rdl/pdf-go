@@ -663,7 +663,6 @@ func createPdf(doc *Document, pdfout string) error {
 		pdf.SetFontSize(fontSize)
 		pdf.SetTextColor(rgb(color))
 		pdf.SetFontStyle("B")
-		//pdf.SetXY(rc.cx()-(textWidth/2), rc.cy())
 		pdf.SetXY(newX, newY)
 
 		pdf.TransformBegin()
@@ -743,7 +742,7 @@ func createPdf(doc *Document, pdfout string) error {
 
 	// header function
 	pdf.SetHeaderFunc(func() {
-		oldx, oldy := pdf.GetXY()
+		//oldx, oldy := pdf.GetXY()
 		//drawColor := pdf.GetDrawColor()
 		//fontColor := pdf.GetTextColor()
 		//fontSize =
@@ -758,13 +757,13 @@ func createPdf(doc *Document, pdfout string) error {
 		////pdf.SetTextColor(0x33, 0, 0)
 		//pdf.CellFormat(w, lh, text, "", 1, "L", false, 0, "")
 
-		fmt.Printf("in header--> x:%.2f, y:%.2f\n", oldx, oldy)
+		//fmt.Printf("in header--> x:%.2f, y:%.2f\n", oldx, oldy)
 	})
 
 	// footer function
 	pdf.SetFooterFunc(func() {
 		oldx, oldy := pdf.GetXY()
-		left, top, right, bottom := pdf.GetMargins()
+		//left, top, right, bottom := pdf.GetMargins()
 		//drawColor := pdf.GetDrawColor()
 		//fontColor := pdf.GetTextColor()
 		//fontSize =
@@ -772,7 +771,7 @@ func createPdf(doc *Document, pdfout string) error {
 
 		getPageRect(pdf, &rc, true)
 
-		pdf.SetXY(left, bottom+rc.h)
+		//pdf.SetXY(left, bottom+rc.h)
 
 		/* // initialize
 		text := "FOOTER!"
@@ -787,7 +786,7 @@ func createPdf(doc *Document, pdfout string) error {
 
 		pdf.SetXY(oldx, oldy)
 
-		fmt.Printf("in footer--> x:%.2f, y:%.2f (t:%.2f,r:%.2f,b:%.2f)\n", oldx, oldy, top, right, bottom)
+		//fmt.Printf("in footer--> x:%.2f, y:%.2f (t:%.2f,r:%.2f,b:%.2f)\n", oldx, oldy, top, right, bottom)
 	})
 
 	// bookmark templating function

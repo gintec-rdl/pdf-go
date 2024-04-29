@@ -94,11 +94,6 @@ func drawLine(pdf *gofpdf.Fpdf, x1, y1, x2, y2 float64, color int) {
 	pdf.SetDrawColor(r, g, b)
 }
 
-type label struct {
-	title string
-	value string
-}
-
 type rect struct {
 	w float64
 	h float64
