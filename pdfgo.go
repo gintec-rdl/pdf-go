@@ -2,7 +2,6 @@ package pdfgo
 
 import (
 	"encoding/json"
-	"fmt"
 	"os"
 	"strconv"
 	"strings"
