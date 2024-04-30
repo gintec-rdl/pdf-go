@@ -21,3 +21,4 @@
 go.work
 
 testdata/output
+localtests/

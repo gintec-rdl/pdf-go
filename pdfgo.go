@@ -183,8 +183,9 @@ type Dimension struct {
 }
 
 type Border struct {
-	Color int
-	Width float64
+	Color      int
+	ColorAlpha float64
+	Width      float64
 }
 
 type UnitType int
@@ -320,14 +321,14 @@ type Element struct {
 	Attrs []Attribute `json:"attributes"`
 
 	// Used internally
-	fontSize      Dimension
-	fontStyle     FontStyle
-	fontColor     int
-	bgColor       int
-	borderColor   int     // not inheritable
-	borderWidth   float64 // not inheritable
-	bookmarkTitle string  //
-	border        struct {
+	fontSize       Dimension
+	fontStyle      FontStyle
+	fontColor      int
+	fontColorAlpha float64
+	bgColor        int
+	bgColorAlpha   float64
+	bookmarkTitle  string //
+	border         struct {
 		left   *Border
 		top    *Border
 		right  *Border
@@ -357,45 +358,58 @@ func (e *Element) setBorderWidth(width float64) {
 	e.border.bottom.Width = width
 }
 
-func (e *Element) setBorderColor(color int) {
+func (e *Element) setBorderColor(color int, alpha float64) {
 	e.border.left.Color = color
+	e.border.left.ColorAlpha = alpha
+
 	e.border.top.Color = color
+	e.border.top.ColorAlpha = alpha
+
 	e.border.right.Color = color
+	e.border.right.ColorAlpha = alpha
+
 	e.border.bottom.Color = color
+	e.border.bottom.ColorAlpha = alpha
 }
 
 func (e Element) drawBorder(pdf *gofpdf.Fpdf, left, top, right, bottom float64) {
 	linewidth := pdf.GetLineWidth()
 	oldx, oldy := pdf.GetXY()
 	r, g, b := pdf.GetDrawColor()
+	oldalpha, bm := pdf.GetAlpha()
 
 	if e.border.left != nil {
 		pdf.SetLineWidth(e.border.left.Width)
 		pdf.SetDrawColor(rgb(e.border.left.Color))
+		pdf.SetAlpha(e.border.left.ColorAlpha, bm)
 		pdf.Line(left, top, left, bottom)
 	}
 
 	if e.border.right != nil {
 		pdf.SetLineWidth(e.border.right.Width)
 		pdf.SetDrawColor(rgb(e.border.right.Color))
+		pdf.SetAlpha(e.border.right.ColorAlpha, bm)
 		pdf.Line(right, top, right, bottom)
 	}
 
 	if e.border.top != nil {
 		pdf.SetLineWidth(e.border.top.Width)
 		pdf.SetDrawColor(rgb(e.border.top.Color))
+		pdf.SetAlpha(e.border.top.ColorAlpha, bm)
 		pdf.Line(left, top, right, top)
 	}
 
 	if e.border.bottom != nil {
 		pdf.SetLineWidth(e.border.bottom.Width)
 		pdf.SetDrawColor(rgb(e.border.bottom.Color))
+		pdf.SetAlpha(e.border.bottom.ColorAlpha, bm)
 		pdf.Line(left, bottom, right, bottom)
 	}
 
 	pdf.SetLineWidth(linewidth)
 	pdf.SetXY(oldx, oldy)
 	pdf.SetDrawColor(r, g, b)
+	pdf.SetAlpha(oldalpha, bm)
 }
 
 func (e Element) Type() ElementType {
@@ -411,11 +425,7 @@ func (me *Element) Inherit(parent *Element) {
 	me.fontSize = parent.fontSize
 	me.fontStyle = parent.fontStyle
 	me.fontColor = parent.fontColor
-}
-
-func (me *Element) ResetBorder(width float64) {
-	me.borderColor = 0
-	me.borderWidth = width
+	me.fontColorAlpha = parent.fontColorAlpha
 }
 
 type Header struct {
@@ -466,8 +476,9 @@ type Document struct {
 		Attributes []Attribute `json:"attributes"`
 
 		// internal use
-		fontColor int
-		fontSize  Dimension
+		fontColor      int
+		fontColorAlpha float64
+		fontSize       Dimension
 	} `json:"watermark"` // Document watermark. Will be placed on every page
 }
 
@@ -542,15 +553,17 @@ func (cell *Cell) Render(pdf *gofpdf.Fpdf, section string, icell int, doc *Docum
 
 	if cell.bgColor > 0 {
 		oa, bm := pdf.GetAlpha()
-		pdf.SetAlpha(alpha(cell.bgColor), "Normal")
+		pdf.SetAlpha(cell.bgColorAlpha, "Normal")
 		fillRect(pdf, cell.bgColor, cellx, celly, cellw, cellh)
 		pdf.SetAlpha(oa, bm)
 	}
 
 	// apply cell styles
+	a, bm := pdf.GetAlpha()
 	ctx.Push(rgb2i(pdf.GetTextColor()))
 	pdf.SetFontStyle(cell.fontStyle.String())
 	pdf.SetTextColor(rgb(cell.fontColor))
+	pdf.SetAlpha(cell.fontColorAlpha, bm)
 
 	// save cordinates for future border drawing
 	cellx, celly = pdf.GetXY()
@@ -565,6 +578,7 @@ func (cell *Cell) Render(pdf *gofpdf.Fpdf, section string, icell int, doc *Docum
 	cell.drawBorder(pdf, left, top, right, bottom)
 
 	pdf.SetTextColor(rgb(ctx.Pop().(int)))
+	pdf.SetAlpha(a, bm)
 
 	return nil
 }
@@ -716,6 +730,7 @@ func createPdf(doc *Document, pdfout string) error {
 	// inherit document font style for watermark
 	doc.Watermark.fontSize = doc.fontSize
 	doc.Watermark.fontColor = doc.fontColor
+	doc.Watermark.fontColorAlpha = doc.fontColorAlpha
 
 	if err := attrWalker("document.watermark", doc.Watermark.Attributes, doc, true); err != nil {
 		return errors.Wrapf(err, "error parsing document watermark")
@@ -813,8 +828,12 @@ func createPdf(doc *Document, pdfout string) error {
 		// apply document background first before any page adjustments
 		if doc.bgColor > 0 {
 			var rc rect
+			a, bm := pdf.GetAlpha()
+
 			getPageRect(pdf, &rc, false)
+			pdf.SetAlpha(doc.bgColorAlpha, bm)
 			fillRect(pdf, doc.bgColor, rc.x, rc.y, rc.w, rc.h)
+			pdf.SetAlpha(a, bm)
 		}
 
 		// page defaults (inherit from document)
@@ -880,18 +899,26 @@ func createPdf(doc *Document, pdfout string) error {
 			}
 
 			if cell.bgColor > 0 {
+				a, bm := pdf.GetAlpha()
+				pdf.SetAlpha(cell.bgColorAlpha, bm)
 				fillRect(pdf, cell.bgColor, cellx, celly, cellw, cellh)
+				pdf.SetAlpha(a, bm)
 			}
 
 			// apply cell styles
+			a, bm := pdf.GetAlpha()
 			ctx.Push(rgb2i(pdf.GetTextColor()))
 			pdf.SetFontStyle(cell.fontStyle.String())
 			pdf.SetTextColor(rgb(cell.fontColor))
+			pdf.SetAlpha(cell.fontColorAlpha, bm)
 
 			// save cordinates for future border drawing
 			cellx, celly = pdf.GetXY()
 
 			pdf.CellFormat(cellw, cellh, cell.Text, "", int(cell.Display), cell.TextAlign, false, 0, "")
+
+			// restore opacity
+			pdf.SetAlpha(a, bm)
 
 			// draw border
 			left := cellx
@@ -926,19 +953,6 @@ func createPdf(doc *Document, pdfout string) error {
 		)
 	}
 
-	//invoiceItems(pdf)
-
-	//paintBackground(pdf)
-	/* pdf.AddPage()
-	invoiceHeader(pdf, &labels)
-	invoiceItems(pdf, &items)
-	drawBorder(pdf) */
-	//drawBorder(pdf)
-
-	/* if !utils.IsEmptyString(watermark) {
-		waterMark(pdf, watermark)
-	} */
-
 	err := pdf.OutputFileAndClose(pdfout)
 	if err != nil {
 		return errors.Wrap(err, "error writing pdf file")
@@ -951,7 +965,7 @@ type AttributeHandler func(pdf *gofpdf.Fpdf, e IElement, val any) error
 
 var (
 	borderColorFn = func(e *Border, val string) (*Border, error) {
-		color, err := parseColor(val)
+		alpha, color, err := parseColor(val)
 		if err != nil {
 			return nil, errors.Wrap(err, "invalid border color value")
 		}
@@ -959,12 +973,13 @@ var (
 			e = new(Border)
 		}
 		e.Color = color
+		e.ColorAlpha = alpha
 		return e, nil
 	}
 	borderWidthFn = func(e *Border, val []byte) (*Border, error) {
 		w, err := strconv.ParseFloat(string(val), 32)
 		if err != nil {
-			return nil, errors.Wrap(err, "invalid border with value")
+			return nil, errors.Wrap(err, "invalid border width value")
 		}
 		if e == nil {
 			e = new(Border)
@@ -974,22 +989,23 @@ var (
 	}
 	attributeHandlers map[string]AttributeHandler = map[string]AttributeHandler{
 		"background-color": func(pdf *gofpdf.Fpdf, e IElement, val any) error {
-			color, err := parseColor(val.(string))
+			alpha, color, err := parseColor(val.(string))
 			if err != nil {
 				return err
 			}
 			doc := e.GetElement()
 			doc.bgColor = color
+			doc.bgColorAlpha = alpha
 			return nil
 		},
 		"border-color": func(pdf *gofpdf.Fpdf, e IElement, val any) error { // for all border sides
-			color, err := parseColor(val.(string))
+			alpha, color, err := parseColor(val.(string))
 			if err != nil {
 				return err
 			}
 			doc := e.GetElement()
 			doc.initBorders()
-			doc.setBorderColor(color)
+			doc.setBorderColor(color, alpha)
 			return nil
 		},
 		"border-width": func(pdf *gofpdf.Fpdf, e IElement, val any) error {
@@ -1021,12 +1037,13 @@ var (
 			return nil
 		},
 		"font-color": func(pdf *gofpdf.Fpdf, e IElement, val any) error {
-			color, err := parseColor(val.(string))
+			alpha, color, err := parseColor(val.(string))
 			if err != nil {
 				return err
 			}
 			doc := e.GetElement()
 			doc.fontColor = color
+			doc.fontColorAlpha = alpha
 			return nil
 		},
 		"document.title": func(pdf *gofpdf.Fpdf, e IElement, val any) error {
@@ -1034,12 +1051,13 @@ var (
 			return nil
 		},
 		"document.watermark.font-color": func(pdf *gofpdf.Fpdf, e IElement, val any) error {
-			color, err := parseColor(val.(string))
+			alpha, color, err := parseColor(val.(string))
 			if err != nil {
 				return err
 			}
 			doc := e.(*Document)
 			doc.Watermark.fontColor = color
+			doc.Watermark.fontColorAlpha = alpha
 			return nil
 		},
 		"document.watermark.font-size": func(pdf *gofpdf.Fpdf, e IElement, val any) error {
