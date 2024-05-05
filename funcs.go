@@ -15,7 +15,7 @@ func init() {
 }
 
 // Parse 24 or 32 bit color hex code.
-func parseColor(str string) (color int, err error) {
+func parseColor(str string) (alpha float64, color int, err error) {
 	alphaHint := false
 	l := len(str)
 	if l > 1 {
@@ -30,10 +30,13 @@ func parseColor(str string) (color int, err error) {
 	if err == nil {
 		if !alphaHint {
 			n |= 0xFF << 24 // implicit full opacity
+		} else {
+			alpha = float64((int(n)&0xFF000000)>>24) / 255.0
 		}
-		return int(n), nil
+		color = int(n)
+		return
 	}
-	return 0, err
+	return 0, 0, err
 }
 
 func rgb(c int) (r, g, b int) {
@@ -62,36 +65,6 @@ func fillRect(pdf *gofpdf.Fpdf, fillcolor int, x, y, w, h float64) {
 
 	pdf.Rect(x, y, w, h, "F")
 	pdf.SetFillColor(fr, fg, fb)
-}
-
-func drawRect(pdf *gofpdf.Fpdf, drawcolor int, x, y, w, h float64) {
-	dr, dg, db := pdf.GetDrawColor()
-
-	r, g, b := rgb(drawcolor)
-	pdf.SetDrawColor(r, g, b)
-
-	pdf.Rect(x, y, w, h, "D")
-	pdf.SetDrawColor(dr, dg, db)
-}
-
-// paint background
-func paintBackground(pdf *gofpdf.Fpdf) {
-	w, h, _ := pdf.PageSize(0)
-	fillRect(pdf, 0xf0f8ff, 0, 0, w, h)
-}
-
-// draw border around the content area
-func drawBorder(pdf *gofpdf.Fpdf) {
-	var pr rect
-	calculatePageRect(pdf, &pr)
-	drawRect(pdf, 0xa2adb1, pr.x, pr.y, pr.w, pr.h)
-}
-
-func drawLine(pdf *gofpdf.Fpdf, x1, y1, x2, y2 float64, color int) {
-	r, g, b := pdf.GetDrawColor()
-	pdf.SetDrawColor(rgb(color))
-	pdf.Line(x1, y1, x2, y2)
-	pdf.SetDrawColor(r, g, b)
 }
 
 type rect struct {
@@ -133,23 +106,4 @@ func getPageRect(pdf *gofpdf.Fpdf, r *rect, withMargins ...bool) {
 	r.h = h - (mb + mt)
 	r.rawh = h
 	r.raww = w
-}
-
-func waterMark(pdf *gofpdf.Fpdf, text string) {
-	var pr rect
-
-	calculatePageRect(pdf, &pr)
-	s, _ := pdf.GetFontSize()
-
-	pdf.TransformBegin()
-	pdf.SetFontSize(80)
-	pdf.SetFontStyle("B")
-	pdf.SetTextColor(rgb(0xfe8080))
-	pdf.SetDrawColor(rgb(0x200000))
-	pdf.TransformTranslate(pr.cx()-45, pr.h)
-	pdf.TransformRotate(45, 0, 0)
-	pdf.Text(0, 0, text)
-	pdf.TransformEnd()
-
-	pdf.SetFontSize(s)
 }
