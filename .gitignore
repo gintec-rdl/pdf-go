@@ -21,4 +21,5 @@
 go.work
 
 testdata/output
-localtests/
+localtests/*
+!localtests/*.go
