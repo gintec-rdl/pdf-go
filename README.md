@@ -43,6 +43,6 @@ Check [ref.md](ref.md) for reference.
 ### To Do
 
 - [ ] Add image support
-- [ ] Add custom font support
-- [ ] Alpha channel support (32bit colors)
+- [x] Add custom font support
+- [x] Alpha channel support (32bit colors)
 - [ ] Finish documentation
