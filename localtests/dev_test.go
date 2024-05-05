@@ -47,13 +47,17 @@ func TestLoadTemplate(t *testing.T) {
 	}
 }
 
-func TestBuilder(t *testing.T) {
+func TestBuildTemplate(t *testing.T) {
 	builder := pdfgo.CreatePdfTemplateBuilder(types.PO_PORTRAIT, types.PAGE_SIZE_A4, types.DU_MILIMETER)
 
 	// documentTitle
 	builder.Title("Report Builder test").
 		ShowBookmarks(true).
 		PageBookmarkTemplate("").
+		AddFontFromFile("roboto", types.FS_BOLD, "../testdata/fonts/roboto_mono/RobotoMono-Bold.ttf").
+		AddFontFromFile("roboto", types.FS_ITALIC, "../testdata/fonts/roboto_mono/RobotoMono-Italic.ttf").
+		AddFontFromFile("roboto", types.FS_REGULAR, "../testdata/fonts/roboto_mono/RobotoMono-Regular.ttf").
+		AddFontFromFile("roboto", types.FS_BOLD|types.FS_ITALIC, "../testdata/fonts/roboto_mono/RobotoMono-BoldItalic.ttf").
 		Style("document", types.PdfTemplateAttributes{
 			"background-color": "#f0f8ff",
 		}).
@@ -66,6 +70,8 @@ func TestBuilder(t *testing.T) {
 		Style("centered-row", types.PdfTemplateAttributes{
 			"background-color": "#101212EE",
 			"font-color":       "#ffffff",
+			"font-style":       "bold",
+			"font-family":      "roboto",
 			"text-align":       "MC",
 			"width":            "100%",
 			"border-width":     ".5",

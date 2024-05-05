@@ -91,6 +91,7 @@ type PdfTemplateBuilder interface {
 	StyleList(name string, more ...string) PdfTemplateBuilder
 	ShowBookmarks(show bool) PdfTemplateBuilder
 	PageBookmarkTemplate(template string) PdfTemplateBuilder
+	AddFontFromFile(fontFamily string, style FontStyle, filepath string) PdfTemplateBuilder
 	Watermark(text string) PdfTemplateWatermark
 	Attribute(name, value string) PdfTemplateBuilder
 	Attributes(attrs PdfTemplateAttributes) PdfTemplateBuilder

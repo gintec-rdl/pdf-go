@@ -134,6 +134,18 @@ func (b *BuilderImpl) PageBookmarkTemplate(template string) types.PdfTemplateBui
 	return b
 }
 
+func (b *BuilderImpl) AddFontFromFile(fontFamily string, style types.FontStyle, filepath string) types.PdfTemplateBuilder {
+	if b.document.Fonts == nil {
+		b.document.Fonts = make([]*types.Font, 0)
+	}
+	font := &types.Font{}
+	font.Style = style
+	font.Name = fontFamily
+	font.Data.FilePath = filepath
+	b.document.Fonts = append(b.document.Fonts, font)
+	return b
+}
+
 func (b *BuilderImpl) AddPage() types.PdfTemplatePage {
 	var newPage = new(types.Page)
 

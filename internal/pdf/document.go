@@ -61,16 +61,6 @@ func (d *PdfDocumentImpl) GetPageCount() int {
 	return d._pdf.PageCount()
 }
 
-/* func (d *PdfDocumentImpl) AddFontFromFile(fontname string, filepath string) error {
-	fd, err := os.Open(filepath)
-	if err != nil {
-		return err
-	}
-	defer fd.Close()
-	d._pdf.AddFontFromReader(fontname, "", fd)
-	return nil
-} */
-
 func (d *PdfDocumentImpl) AddFont(fontname string, data []byte) {
 	d._pdf.AddFontFromBytes(fontname, "", nil, data)
 }
@@ -87,8 +77,8 @@ func (d *PdfDocumentImpl) Save(w io.Writer) error {
 	return d._pdf.Output(w)
 }
 
-func (d *PdfDocumentImpl) InitializeFonts(fonts *[]types.Font) error {
-	loadf := func(font types.Font) error {
+func (d *PdfDocumentImpl) InitializeFonts(fonts *[]*types.Font) error {
+	loadf := func(font *types.Font) error {
 		if font.Data.FilePath != "" {
 			fd, err := os.Open(font.Data.FilePath)
 			if err != nil {
@@ -99,10 +89,11 @@ func (d *PdfDocumentImpl) InitializeFonts(fonts *[]types.Font) error {
 			if err != nil {
 				return errors.Wrapf(err, "read font file `%s`", filepath.Base(font.Data.FilePath))
 			}
+			// Doesn't report errors immediately. Errors are reported when saving document 😕
 			d._pdf.AddUTF8FontFromBytes(font.Name, font.Style.String(), bytes)
 			return nil
 		} else {
-			bytes, err := hex.DecodeString(string(font.Data.Data))
+			bytes, err := hex.DecodeString(font.Data.Data)
 			if err != nil {
 				return errors.Wrapf(err, "decode font `%s`", font.Name)
 			}

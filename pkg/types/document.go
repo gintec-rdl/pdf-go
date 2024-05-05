@@ -138,20 +138,32 @@ func (fs FontStyle) String() string {
 }
 
 func (fs *FontStyle) UnmarshalText(data []byte) error {
-	info, ok := fontStrToFontStyeMap[string(data)]
-	if !ok {
-		return errors.Errorf("invalid font style %s", data)
+	names := strings.Split(string(data), "|")
+	if len(names) == 0 {
+		return errors.New("empty font style")
+
 	}
-	*fs = info.Style
+	for _, name := range names {
+		style, ok := fontStrToFontStyeMap[name]
+		if !ok {
+			return errors.Errorf("unsupported font style %s", name)
+		}
+		*fs |= style.Style
+	}
 	return nil
 }
 
 func (fs *FontStyle) MarshalText() ([]byte, error) {
-	name, ok := fontStyleToFontNameMap[*fs]
-	if !ok {
-		return nil, errors.Errorf("invalid font style type %s", fs.String())
+	names := []string{}
+	for style, name := range fontStyleToFontNameMap {
+		if *fs&style > 0 {
+			names = append(names, name)
+		}
 	}
-	return []byte(name), nil
+	if len(names) == 0 {
+		return nil, errors.Errorf("unsupported font style value `%v`", fs)
+	}
+	return []byte(strings.Join(names, "|")), nil
 }
 
 func (fs *FontStyle) UnmarshalJSON(data []byte) error {
@@ -167,7 +179,7 @@ func (fs *FontStyle) MarshalJSON() ([]byte, error) {
 	if err != nil {
 		return nil, err
 	}
-	return json.Marshal(name)
+	return json.Marshal(string(name))
 }
 
 type styleinfo struct {
@@ -528,7 +540,7 @@ func (s *Style) Apply(e *Element) {
 
 type FontData struct {
 	FilePath string `json:"-"` // will contain the file path if it points to a font file
-	Data     []byte `json:"data"`
+	Data     string `json:"data"`
 }
 
 const MAX_FONT_FILE_SIZE = 500 * 1024
@@ -561,6 +573,9 @@ func (fd *FontData) UnmarshalJSON(in []byte) error {
 }
 
 func (fd *FontData) MarshalJSON() ([]byte, error) {
+	if fd.FilePath != "" {
+		return json.Marshal(fmt.Sprintf("file://%s", fd.FilePath))
+	}
 	return json.Marshal(fd.Data)
 }
 
@@ -573,7 +588,7 @@ type Font struct {
 type Document struct {
 	Element
 	Styles               []*Style        `json:"styles"`
-	Fonts                []Font          `json:"fonts"`
+	Fonts                []*Font         `json:"fonts"`
 	PageSize             PageSize        `json:"size,omitempty"`         // Document size: (A4,Letter, etc)
 	DisplayUnit          DimensionUnit   `json:"units,omitempty"`        // Document display units. All numbers will eventually be converted to this unit
 	Orientation          PageOrientation `json:"orientation,omitempty"`  // Orientation: (P)ortrait or (L)andscape

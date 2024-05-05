@@ -192,7 +192,7 @@ type PdfDocument interface {
 	SetTitle(title string)
 	GetPage(page int) (PdfPage, bool)
 	GetPageCount() int
-	InitializeFonts(fonts *[]Font) error
+	InitializeFonts(fonts *[]*Font) error
 	AddFont(fontname string, data []byte)
 	SaveAndCloseF(dst string) error
 	SaveAndCloseW(w io.WriteCloser) error
