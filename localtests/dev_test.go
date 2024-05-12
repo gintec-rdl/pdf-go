@@ -111,3 +111,25 @@ func TestBuildTemplate(t *testing.T) {
 		return
 	}
 }
+
+
+func TestTimesheet(t *testing.T) {
+	loader := pdfgo.CreatePdfTemplateLoader()
+	tpl, err := loader.LoadF("../testdata/templates/timesheet.json")
+	if err != nil {
+		t.Fatal(err)
+		return
+	}
+
+	pdfDoc, err := pdfgo.CreatePdfDocumentT(tpl)
+	if err != nil {
+		t.Fatal(err)
+		return
+	}
+
+	err = tpl.RenderF(pdfDoc, "timesheet.pdf")
+	if err != nil {
+		t.Fatal(err)
+		return
+	}
+}
